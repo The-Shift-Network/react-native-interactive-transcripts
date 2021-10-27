@@ -1,21 +1,12 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useEffect } from 'react';
-import {
-  StyleProp,
-  Text,
-  TextStyle,
-  TouchableOpacity,
-  ViewStyle,
-  View,
-} from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleProp, Text, TextStyle, ViewStyle, View } from 'react-native';
 import WebVttParser from './VTTtoJsonParser.js';
 
 export interface InteractiveTranscriptsProps {
   currentVideoProgress: number;
   url: string;
-  seekToTranscriptDuration: (p: number) => void;
   textStyle?: StyleProp<ViewStyle>;
-  textContainerStyle?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
   inactiveTranscriptTextStyle?: StyleProp<TextStyle>;
   activeTranscriptTextStyle?: StyleProp<TextStyle>;
@@ -27,9 +18,7 @@ export interface InteractiveTranscriptsProps {
 const InteractiveTranscripts = ({
   currentVideoProgress = 0,
   url = '',
-  seekToTranscriptDuration = () => {},
   textStyle = {},
-  textContainerStyle = { margin: 5 },
   contentContainerStyle = {},
   activeTranscriptTextStyle,
   inactiveTranscriptTextStyle,
@@ -61,55 +50,77 @@ const InteractiveTranscripts = ({
   /**
    * To find the CC current text to display
    */
-  const cueTextAndIndex = (array: any, value: number) => {
-    let low = 0,
-      high = array.length - 1;
-    while (low < high) {
-      var mid = (low + high) >>> 1;
-      if (array[mid].startTime <= value) {
-        low = mid + 1;
-      } else {
-        high = mid;
+  const cueTextAndIndex = useCallback(
+    (array: any, value: number) => {
+      let low = 0,
+        high = array.length - 1;
+      while (low < high) {
+        var mid = (low + high) >>> 1;
+        if (array[mid].startTime <= value) {
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
       }
+      low = low - 1;
+      if (low < 0) {
+        return { cuetext: '', cueindex: -1 };
+      }
+      return {
+        cuetext: array[low].endTime >= value ? array[low].text : '',
+        cueindex: array[low].endTime >= value ? array[low].sequence : -1,
+      };
+    },
+    [url]
+  );
+
+  const lastNewLineTextIndex = useRef<number>(-1);
+
+  const formatText = (text: string, index: number) => {
+    const hasNewLine = text.match(/\\n/g);
+    if (hasNewLine) {
+      // add two new lines when the text has a new line (also replaces normal \n with jsx \n)
+      const textWithNewLine = text.replaceAll(/\\n/g, '\n\n');
+      lastNewLineTextIndex.current = index;
+      return textWithNewLine;
     }
-    low = low - 1;
-    if (low < 0) {
-      return { cuetext: '', cueindex: -1 };
+
+    // if we had a new line previously, do not add a white space at the begginning of the text, which is a new row
+    if (lastNewLineTextIndex.current + 1 === index) {
+      return `${text.trim()} `;
     }
-    return {
-      cuetext: array[low].endTime >= value ? array[low].text : '',
-      cueindex: array[low].endTime >= value ? array[low].sequence : -1,
-    };
+
+    if (index === 0) {
+      return `${text} `;
+    }
+
+    return ` ${text} `;
   };
 
   return (
-    <>
+    <View style={contentContainerStyle}>
       {cueArray !== null && (
-        <View style={contentContainerStyle}>
+        <Text style={inactiveTranscriptTextStyle}>
           {cueArray.map((item, index) => {
-            return (
-              <TouchableOpacity
-                style={[textContainerStyle]}
-                onPress={() => {
-                  seekToTranscriptDuration(item.startTime / 1000);
-                }}
-                key={`${item.startTime}`}
+            return selectedIndex === index ? (
+              <Text
+                key={`${item.text}`}
+                style={[textStyle, activeTranscriptTextStyle]}
               >
-                {selectedIndex === index ? (
-                  <Text style={[textStyle, activeTranscriptTextStyle]}>
-                    {item.text}
-                  </Text>
-                ) : (
-                  <Text style={[textStyle, inactiveTranscriptTextStyle]}>
-                    {item.text}
-                  </Text>
-                )}
-              </TouchableOpacity>
+                {formatText(item.text, index)}
+              </Text>
+            ) : (
+              <Text
+                key={`${item.text}`}
+                style={[textStyle, inactiveTranscriptTextStyle]}
+              >
+                {formatText(item.text, index)}
+              </Text>
             );
           })}
-        </View>
+        </Text>
       )}
-    </>
+    </View>
   );
 };
 
