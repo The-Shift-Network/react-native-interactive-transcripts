@@ -1,38 +1,42 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  FlatList,
   StyleProp,
   Text,
+  TextStyle,
   TouchableOpacity,
   ViewStyle,
+  View,
 } from 'react-native';
 import WebVttParser from './VTTtoJsonParser.js';
 
-interface InteractiveTranscriptsProps {
-  currentDuration: number;
+export interface InteractiveTranscriptsProps {
+  currentVideoProgress: number;
   url: string;
   seekToTranscriptDuration: (p: number) => void;
   textStyle?: StyleProp<ViewStyle>;
   textContainerStyle?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  inactiveTranscriptTextStyle?: StyleProp<TextStyle>;
+  activeTranscriptTextStyle?: StyleProp<TextStyle>;
   activeTranscriptColor?: string;
   inactiveTranscriptColor?: string;
+  onFocusNextLine: (index: number) => void;
 }
 
 const InteractiveTranscripts = ({
-  currentDuration = 0,
+  currentVideoProgress = 0,
   url = '',
   seekToTranscriptDuration = () => {},
   textStyle = {},
   textContainerStyle = { margin: 5 },
   contentContainerStyle = {},
-  activeTranscriptColor = 'blue',
-  inactiveTranscriptColor = 'black',
+  activeTranscriptTextStyle,
+  inactiveTranscriptTextStyle,
+  onFocusNextLine,
 }: InteractiveTranscriptsProps) => {
   const [cueArray, setCueArray] = useState<any[]>([]);
   const [selectedIndex, changeSelectedIndex] = useState(-1);
-  let flatlistRef: any = useRef<FlatList>(null);
 
   useEffect(() => {
     cueArray.length === 0 &&
@@ -43,17 +47,16 @@ const InteractiveTranscripts = ({
           setCueArray(output);
         });
     if (cueArray.length > 0) {
-      let cueval = cueTextAndIndex(cueArray, currentDuration);
-      changeSelectedIndex(cueval.cueindex);
+      let cueval = cueTextAndIndex(cueArray, currentVideoProgress);
+
       if (cueval.cueindex >= 0 && selectedIndex !== cueval.cueindex) {
-        flatlistRef.scrollToIndex({
-          animated: true,
-          index: cueval.cueindex,
-          viewPosition: 0.3,
-        });
+        changeSelectedIndex(cueval.cueindex);
+
+        /** This sends the current transcript line index to the parent (so we can scrollTo) */
+        onFocusNextLine(cueval.cueindex);
       }
     }
-  }, [url, currentDuration, cueArray, selectedIndex]);
+  }, [url, currentVideoProgress, cueArray, selectedIndex, onFocusNextLine]);
 
   /**
    * To find the CC current text to display
@@ -82,34 +85,29 @@ const InteractiveTranscripts = ({
   return (
     <>
       {cueArray !== null && (
-        <FlatList
-          ref={(ref) => {
-            flatlistRef = ref;
-          }}
-          contentContainerStyle={contentContainerStyle}
-          data={cueArray}
-          keyExtractor={(item) => `${item.startTime}`}
-          renderItem={({ item, index }) => {
+        <View style={contentContainerStyle}>
+          {cueArray.map((item, index) => {
             return (
               <TouchableOpacity
                 style={[textContainerStyle]}
                 onPress={() => {
                   seekToTranscriptDuration(item.startTime / 1000);
                 }}
+                key={`${item.startTime}`}
               >
                 {selectedIndex === index ? (
-                  <Text style={[{ color: activeTranscriptColor }, textStyle]}>
+                  <Text style={[textStyle, activeTranscriptTextStyle]}>
                     {item.text}
                   </Text>
                 ) : (
-                  <Text style={[{ color: inactiveTranscriptColor }, textStyle]}>
+                  <Text style={[textStyle, inactiveTranscriptTextStyle]}>
                     {item.text}
                   </Text>
                 )}
               </TouchableOpacity>
             );
-          }}
-        />
+          })}
+        </View>
       )}
     </>
   );
