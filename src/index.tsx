@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleProp, Text, TextStyle, ViewStyle, View } from 'react-native';
-import WebVttParser from './src/VTTtoJsonParser.js';
+import WebVttParser from './VTTtoJsonParser.js';
 
 export interface InteractiveTranscriptsProps {
   currentVideoProgress: number;
