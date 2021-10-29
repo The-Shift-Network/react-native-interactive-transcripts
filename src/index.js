@@ -3,7 +3,7 @@ exports.__esModule = true;
 /* eslint-disable react-native/no-inline-styles */
 var react_1 = require("react");
 var react_native_1 = require("react-native");
-var VTTtoJsonParser_js_1 = require("./src/VTTtoJsonParser.js");
+var VTTtoJsonParser_js_1 = require("./VTTtoJsonParser.js");
 var InteractiveTranscripts = function (_a) {
     var _b = _a.currentVideoProgress, currentVideoProgress = _b === void 0 ? 0 : _b, _c = _a.url, url = _c === void 0 ? '' : _c, _d = _a.textStyle, textStyle = _d === void 0 ? {} : _d, _e = _a.contentContainerStyle, contentContainerStyle = _e === void 0 ? {} : _e, activeTranscriptTextStyle = _a.activeTranscriptTextStyle, inactiveTranscriptTextStyle = _a.inactiveTranscriptTextStyle, onFocusNextLine = _a.onFocusNextLine;
     var _f = react_1.useState([]), cueArray = _f[0], setCueArray = _f[1];
