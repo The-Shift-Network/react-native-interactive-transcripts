@@ -1,7 +1,16 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleProp, Text, TextStyle, ViewStyle, View } from 'react-native';
+import {
+  StyleProp,
+  Text,
+  TextStyle,
+  ViewStyle,
+  View,
+  TextLayoutLine,
+} from 'react-native';
 import WebVttParser from './VTTtoJsonParser.js';
+// this might crash if we ever ditch reanimated
+import { interpolate } from 'react-native-reanimated';
 
 export interface InteractiveTranscriptsProps {
   currentVideoProgress: number;
@@ -12,7 +21,7 @@ export interface InteractiveTranscriptsProps {
   activeTranscriptTextStyle?: StyleProp<TextStyle>;
   activeTranscriptColor?: string;
   inactiveTranscriptColor?: string;
-  onFocusNextLine: (index: number) => void;
+  onFocusNextLine: (lineYOffset: number) => void;
 }
 
 const InteractiveTranscripts = ({
@@ -26,6 +35,7 @@ const InteractiveTranscripts = ({
 }: InteractiveTranscriptsProps) => {
   const [cueArray, setCueArray] = useState<any[]>([]);
   const [selectedIndex, changeSelectedIndex] = useState(-1);
+  const textLinesPositions = useRef<TextLayoutLine[] | null>(null);
 
   useEffect(() => {
     cueArray.length === 0 &&
@@ -38,11 +48,35 @@ const InteractiveTranscripts = ({
     if (cueArray.length > 0) {
       let cueval = cueTextAndIndex(cueArray, currentVideoProgress);
 
-      if (cueval.cueindex >= 0 && selectedIndex !== cueval.cueindex) {
+      console.tron.log('cuearray', cueArray);
+      if (
+        cueval.cueindex >= 0 &&
+        // don't scrollTo again if it's the same line
+        selectedIndex !== cueval.cueindex &&
+        textLinesPositions.current &&
+        textLinesPositions.current.length > 0
+      ) {
+        /** So a couple of things are fixed here. The onTextLayout below give us an array
+         * of each of the Text lines rendered (like 200 entries in the array, for 200 lines.
+         * Each entry in the cueArray above is a highlighted piece of text, let's say it's 70
+         * in this case. So we need to find the corresponding index of the current highlighted
+         * entry from the cueArray, that matches the line from onTextLayout, to get it's Y offset.*/
         changeSelectedIndex(cueval.cueindex);
 
+        // get the corresponding index in the onLayoutText lines array of the current highlighted text
+        const interpolatedLineIndex = Math.floor(
+          interpolate(
+            cueval.cueindex,
+            [0, cueArray.length],
+            [0, textLinesPositions.current.length]
+          )
+        );
+
+        // use the index from above to get the Y offset from the onLayoutText lines array
+        const lineYOffset = textLinesPositions.current[interpolatedLineIndex].y;
+
         /** This sends the current transcript line index to the parent (so we can scrollTo) */
-        onFocusNextLine(cueval.cueindex);
+        onFocusNextLine(lineYOffset);
       }
     }
   }, [url, currentVideoProgress, cueArray, selectedIndex, onFocusNextLine]);
@@ -96,11 +130,17 @@ const InteractiveTranscripts = ({
 
     return ` ${text} `;
   };
+  console.tron.log('this render works');
 
   return (
     <View style={contentContainerStyle}>
       {cueArray !== null && (
-        <Text style={inactiveTranscriptTextStyle}>
+        <Text
+          style={inactiveTranscriptTextStyle}
+          onTextLayout={(event) =>
+            (textLinesPositions.current = event.nativeEvent.lines)
+          }
+        >
           {cueArray.map((item, index) => {
             return selectedIndex === index ? (
               <Text
