@@ -5,7 +5,7 @@ import {
   Text,
   TextStyle,
   ViewStyle,
-  View,
+  ScrollView,
   TextLayoutLine,
 } from 'react-native';
 import WebVttParser from './VTTtoJsonParser.js';
@@ -21,7 +21,6 @@ export interface InteractiveTranscriptsProps {
   activeTranscriptTextStyle?: StyleProp<TextStyle>;
   activeTranscriptColor?: string;
   inactiveTranscriptColor?: string;
-  onFocusNextLine: (lineYOffset: number) => void;
 }
 
 const InteractiveTranscripts = ({
@@ -31,11 +30,12 @@ const InteractiveTranscripts = ({
   contentContainerStyle = {},
   activeTranscriptTextStyle,
   inactiveTranscriptTextStyle,
-  onFocusNextLine,
 }: InteractiveTranscriptsProps) => {
   const [cueArray, setCueArray] = useState<any[]>([]);
   const [selectedIndex, changeSelectedIndex] = useState(-1);
   const textLinesPositions = useRef<TextLayoutLine[] | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const autoScrollEnabled = useRef<boolean>(true);
 
   useEffect(() => {
     cueArray.length === 0 &&
@@ -48,7 +48,6 @@ const InteractiveTranscripts = ({
     if (cueArray.length > 0) {
       let cueval = cueTextAndIndex(cueArray, currentVideoProgress);
 
-      console.tron.log('cuearray', cueArray);
       if (
         cueval.cueindex >= 0 &&
         // don't scrollTo again if it's the same line
@@ -57,12 +56,16 @@ const InteractiveTranscripts = ({
         textLinesPositions.current.length > 0
       ) {
         /** So a couple of things are fixed here. The onTextLayout below give us an array
-         * of each of the Text lines rendered (like 200 entries in the array, for 200 lines.
+         * of each of the Text lines rendered (like 200 entries in the array, for 200 lines).
          * Each entry in the cueArray above is a highlighted piece of text, let's say it's 70
          * in this case. So we need to find the corresponding index of the current highlighted
          * entry from the cueArray, that matches the line from onTextLayout, to get it's Y offset.*/
         changeSelectedIndex(cueval.cueindex);
 
+        if (!autoScrollEnabled.current) {
+          // If the user scrolled the transcript, disable the autoscroll
+          return;
+        }
         // get the corresponding index in the onLayoutText lines array of the current highlighted text
         const interpolatedLineIndex = Math.floor(
           interpolate(
@@ -74,12 +77,19 @@ const InteractiveTranscripts = ({
 
         // use the index from above to get the Y offset from the onLayoutText lines array
         const lineYOffset = textLinesPositions.current[interpolatedLineIndex].y;
+        /** the lineYOffset returns the Y offset at the top of the scrollview
+         * Add (by subtracting) some extra padding to the top of the offset,
+         * so the highlighted piece of text is not exactly at the top*/
+        const lineYOffsetWithPadding = lineYOffset - 50;
 
-        /** This sends the current transcript line index to the parent (so we can scrollTo) */
-        onFocusNextLine(lineYOffset);
+        /** Scroll to the current line in the transcript. */
+        scrollViewRef.current?.scrollTo?.({
+          y: lineYOffsetWithPadding,
+          animated: true,
+        });
       }
     }
-  }, [url, currentVideoProgress, cueArray, selectedIndex, onFocusNextLine]);
+  }, [url, currentVideoProgress, cueArray, selectedIndex]);
 
   /**
    * To find the CC current text to display
@@ -130,14 +140,18 @@ const InteractiveTranscripts = ({
 
     return ` ${text} `;
   };
-  console.tron.log('this render works');
 
   return (
-    <View style={contentContainerStyle}>
+    <ScrollView
+      contentContainerStyle={contentContainerStyle}
+      ref={scrollViewRef}
+      onTouchStart={() => (autoScrollEnabled.current = false)}
+    >
       {cueArray !== null && (
         <Text
           style={inactiveTranscriptTextStyle}
           onTextLayout={(event) =>
+            // If the user scrolled the transcript, disable the autoscroll
             (textLinesPositions.current = event.nativeEvent.lines)
           }
         >
@@ -160,7 +174,7 @@ const InteractiveTranscripts = ({
           })}
         </Text>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
