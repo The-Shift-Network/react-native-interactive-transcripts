@@ -145,6 +145,7 @@ const InteractiveTranscripts = ({
     <ScrollView
       contentContainerStyle={contentContainerStyle}
       ref={scrollViewRef}
+      showsVerticalScrollIndicator={false}
       onTouchStart={() => (autoScrollEnabled.current = false)}
     >
       {cueArray !== null && (
