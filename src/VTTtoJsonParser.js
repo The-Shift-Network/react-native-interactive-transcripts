@@ -107,8 +107,11 @@ function processArrayBlocksToCues(arrayBlocks) {
 
 export default function WebVttParser(string) {
   // some VTT files have weird occurences of "&nbsp;"; remove them just in case;
-  const filteredString = string.replaceAll('&nbsp;&nbsp;', '');
-  const filteredString2 = filteredString.replaceAll('&nbsp;', ' ');
+  const filteredString = string.replace(new RegExp('&nbsp;&nbsp;', 'g'), '');
+  const filteredString2 = filteredString.replace(
+    new RegExp('&nbsp;', 'g'),
+    ' '
+  );
   const lineArray = filteredString2.split(/\r?\n/);
   const allRawCueData = processArrayToArrayBlocks(lineArray);
   const rawCueData = dropEmptyArrayBlocks(allRawCueData);

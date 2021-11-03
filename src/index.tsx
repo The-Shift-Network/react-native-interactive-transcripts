@@ -124,7 +124,7 @@ const InteractiveTranscripts = ({
     const hasNewLine = text.match(/\\n/g);
     if (hasNewLine) {
       // add two new lines when the text has a new line (also replaces normal \n with jsx \n)
-      const textWithNewLine = text.replaceAll(/\\n/g, '\n\n');
+      const textWithNewLine = text.replace(/\\n/g, '\n\n');
       lastNewLineTextIndex.current = index;
       return textWithNewLine;
     }
