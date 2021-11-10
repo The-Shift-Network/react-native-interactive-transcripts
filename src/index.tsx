@@ -112,7 +112,8 @@ const InteractiveTranscripts = ({
       }
       return {
         cuetext: array[low].endTime >= value ? array[low].text : '',
-        cueindex: array[low].endTime >= value ? array[low].sequence : -1,
+        cueindex:
+          array[low].endTime >= value ? array[low].sequence : array.length - 1,
       };
     },
     [url]
