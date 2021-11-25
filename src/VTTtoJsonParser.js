@@ -88,7 +88,7 @@ function processArrayBlocksToCues(arrayBlocks) {
             }
             return cue;
           }
-          cue.text = cue.text + string;
+          cue.text = cue.text.trim() + ' ' + string.trim();
           return cue;
         },
         {
@@ -116,5 +116,6 @@ export default function WebVttParser(string) {
   const allRawCueData = processArrayToArrayBlocks(lineArray);
   const rawCueData = dropEmptyArrayBlocks(allRawCueData);
   const filteredCueData = dropNonCueData(rawCueData);
-  return processArrayBlocksToCues(filteredCueData);
+  const processedArrayBlocks = processArrayBlocksToCues(filteredCueData);
+  return processedArrayBlocks;
 }

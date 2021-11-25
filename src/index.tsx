@@ -130,16 +130,11 @@ const InteractiveTranscripts = ({
       return textWithNewLine;
     }
 
-    // if we had a new line previously, do not add a white space at the begginning of the text, which is a new row
-    if (lastNewLineTextIndex.current + 1 === index) {
-      return `${text.trim()} `;
-    }
-
     if (index === 0) {
       return `${text} `;
     }
 
-    return ` ${text} `;
+    return ` ${text}`;
   };
 
   return (
