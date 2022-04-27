@@ -1,6 +1,6 @@
 {
   "name": "react-native-interactive-transcripts",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Interactive Transcript support in the react native.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
