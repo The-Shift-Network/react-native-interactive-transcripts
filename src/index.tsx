@@ -22,6 +22,7 @@ export interface InteractiveTranscriptsProps {
   activeTranscriptColor?: string;
   inactiveTranscriptColor?: string;
   alwaysAutoScroll: boolean;
+  disableAutoScrollOnTouch: boolean;
 }
 
 const InteractiveTranscripts = ({
@@ -32,6 +33,7 @@ const InteractiveTranscripts = ({
   activeTranscriptTextStyle,
   inactiveTranscriptTextStyle,
   alwaysAutoScroll,
+  disableAutoScrollOnTouch,
 }: InteractiveTranscriptsProps) => {
   const [cueArray, setCueArray] = useState<any[]>([]);
   const [selectedIndex, changeSelectedIndex] = useState(-1);
@@ -80,6 +82,9 @@ const InteractiveTranscripts = ({
          * so the highlighted piece of text is not exactly at the top*/
         const lineYOffsetWithPadding = lineYOffset - 50;
 
+        if (disableAutoScrollOnTouch && !autoScrollEnabled.current) {
+          return;
+        }
         /** We've enabled the autoscroll if the user scrolls above the current index*/
         if (
           lastScrollPosition.current < lineYOffsetWithPadding ||
@@ -93,7 +98,13 @@ const InteractiveTranscripts = ({
         }
       }
     }
-  }, [url, currentVideoProgress, cueArray, selectedIndex]);
+  }, [
+    url,
+    currentVideoProgress,
+    cueArray,
+    selectedIndex,
+    disableAutoScrollOnTouch,
+  ]);
 
   /**
    * To find the CC current text to display
