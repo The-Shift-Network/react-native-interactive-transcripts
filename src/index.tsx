@@ -64,7 +64,8 @@ const InteractiveTranscripts = ({
          * of each of the Text lines rendered (like 200 entries in the array, for 200 lines).
          * Each entry in the cueArray above is a highlighted piece of text, let's say it's 70
          * in this case. So we need to find the corresponding index of the current highlighted
-         * entry from the cueArray, that matches the line from onTextLayout, to get it's Y offset.*/
+         * entry from the cueArray, that matches the line from onTextLayout, to get it's Y offset.
+         * We use the Y offset to autoscroll to the current index.*/
         changeSelectedIndex(cueval.cueindex);
 
         const interpolatedLineIndex = Math.floor(
@@ -82,10 +83,21 @@ const InteractiveTranscripts = ({
          * so the highlighted piece of text is not exactly at the top*/
         const lineYOffsetWithPadding = lineYOffset - 50;
 
+        /** If this is enabled, when the user scrolls up/down once, the
+         * autoscroll is disabled for this instance. */
         if (disableAutoScrollOnTouch && !autoScrollEnabled.current) {
           return;
         }
-        /** We've enabled the autoscroll if the user scrolls above the current index*/
+
+        /**
+         * current index = current piece of text that's highlighted
+         * If the user scrolls above the current index and
+         * the index changes (progresses forward), force auto scroll
+         * to the newest index.
+         *
+         * If the user scrolls past the current index, do not autoscroll
+         * back to the current index. (spotify like interaction)
+         * */
         if (
           lastScrollPosition.current < lineYOffsetWithPadding ||
           alwaysAutoScroll
