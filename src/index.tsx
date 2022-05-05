@@ -21,7 +21,6 @@ export interface InteractiveTranscriptsProps {
   activeTranscriptTextStyle?: StyleProp<TextStyle>;
   activeTranscriptColor?: string;
   inactiveTranscriptColor?: string;
-  alwaysAutoScroll: boolean;
 }
 
 const InteractiveTranscripts = ({
@@ -31,14 +30,12 @@ const InteractiveTranscripts = ({
   contentContainerStyle = {},
   activeTranscriptTextStyle,
   inactiveTranscriptTextStyle,
-  alwaysAutoScroll,
 }: InteractiveTranscriptsProps) => {
   const [cueArray, setCueArray] = useState<any[]>([]);
   const [selectedIndex, changeSelectedIndex] = useState(-1);
   const textLinesPositions = useRef<TextLayoutLine[] | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const autoScrollEnabled = useRef<boolean>(true);
-  const lastScrollPosition = useRef<number>(0);
 
   useEffect(() => {
     cueArray.length === 0 &&
@@ -65,6 +62,11 @@ const InteractiveTranscripts = ({
          * entry from the cueArray, that matches the line from onTextLayout, to get it's Y offset.*/
         changeSelectedIndex(cueval.cueindex);
 
+        if (!autoScrollEnabled.current) {
+          // If the user scrolled the transcript, disable the autoscroll
+          return;
+        }
+        // get the corresponding index in the onLayoutText lines array of the current highlighted text
         const interpolatedLineIndex = Math.floor(
           interpolate(
             cueval.cueindex,
@@ -80,17 +82,11 @@ const InteractiveTranscripts = ({
          * so the highlighted piece of text is not exactly at the top*/
         const lineYOffsetWithPadding = lineYOffset - 50;
 
-        /** We've enabled the autoscroll if the user scrolls above the current index*/
-        if (
-          lastScrollPosition.current < lineYOffsetWithPadding ||
-          alwaysAutoScroll
-        ) {
-          /** Scroll to the current line in the transcript. */
-          scrollViewRef.current?.scrollTo?.({
-            y: lineYOffsetWithPadding,
-            animated: true,
-          });
-        }
+        /** Scroll to the current line in the transcript. */
+        scrollViewRef.current?.scrollTo?.({
+          y: lineYOffsetWithPadding,
+          animated: true,
+        });
       }
     }
   }, [url, currentVideoProgress, cueArray, selectedIndex]);
@@ -115,12 +111,9 @@ const InteractiveTranscripts = ({
         return { cuetext: '', cueindex: -1 };
       }
       return {
-        cuetext:
-          array[low].endTime >= value ? array[low].text : array[high].text,
+        cuetext: array[low].endTime >= value ? array[low].text : '',
         cueindex:
-          array[low].endTime >= value
-            ? array[low].sequence
-            : array[high].sequence,
+          array[low].endTime >= value ? array[low].sequence : array.length - 1,
       };
     },
     [url]
@@ -149,9 +142,6 @@ const InteractiveTranscripts = ({
       contentContainerStyle={contentContainerStyle}
       ref={scrollViewRef}
       showsVerticalScrollIndicator={false}
-      onScroll={(scrollEvent) => {
-        lastScrollPosition.current = scrollEvent.nativeEvent.contentOffset.y;
-      }}
       onTouchStart={() => (autoScrollEnabled.current = false)}
     >
       {cueArray !== null && (
